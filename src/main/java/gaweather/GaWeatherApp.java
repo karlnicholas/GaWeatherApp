@@ -1,7 +1,5 @@
 package gaweather;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.jsoup.Jsoup;
@@ -11,20 +9,17 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class GaWeatherApp {
-    private ObjectMapper mapper;
-    Logger logger = Logger.getLogger(GaWeatherApp.class.getName());
+    private final Logger logger = Logger.getLogger(GaWeatherApp.class.getName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         new GaWeatherApp().run();
     }
 
-    private void run() throws IOException {
-        mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private void run() {
         GaStationProperties gaStationProperties = loadStationProperties();
         GaStationReadings gaStationReadings = getGaStationReadings(gaStationProperties);
         for (GaStationReading gaStationReading : gaStationReadings.getGaStationReadings()) {
@@ -32,12 +27,21 @@ public class GaWeatherApp {
         }
     }
 
-    private GaStationProperties loadStationProperties() throws IOException {
+    private GaStationProperties loadStationProperties() {
         GaStationProperties gaStationProperties = new GaStationProperties();
-        try (InputStreamReader in = new InputStreamReader(GaWeatherApp.class.getResourceAsStream("/GaStationProperties.csv"))) {
-            gaStationProperties.setGaStationProperties( CSVFormat.Builder.create()
-                    .setHeader(GaStationProperty.GaStationPropertyHeader.class)
-                    .build().parse(in).stream().map(CSVRecord::toMap).map(GaStationProperty::new).collect(Collectors.toList()));
+        InputStream resource = GaWeatherApp.class.getResourceAsStream("/GaStationProperties.csv");
+        if ( resource != null ) {
+            try (InputStreamReader in = new InputStreamReader(resource)) {
+                gaStationProperties.setGaStationProperties(CSVFormat.Builder.create()
+                        .setHeader(GaStationProperty.GaStationPropertyHeader.class)
+                        .build().parse(in).stream().map(CSVRecord::toMap).map(GaStationProperty::new).collect(Collectors.toList()));
+            } catch ( Exception e) {
+                logger.severe(e.getMessage());
+                gaStationProperties.setGaStationProperties(new ArrayList<>());
+            }
+        } else {
+            logger.severe("Resource /GaStationProperties.csv not found");
+            gaStationProperties.setGaStationProperties(new ArrayList<>());
         }
         return gaStationProperties;
     }
@@ -45,21 +49,19 @@ public class GaWeatherApp {
     private GaStationReadings getGaStationReadings(GaStationProperties gaStationProperties) {
         GaStationReadings gaStationReadings = new GaStationReadings();
         ExecutorService executor = Executors.newFixedThreadPool(gaStationProperties.getGaStationProperties().size());
-        // invoiceIDs is a collection of Invoice IDs
         List<Callable<GaStationReading>> tasks = gaStationProperties.getGaStationProperties().stream().map(p -> (Callable<GaStationReading>) () -> getGaStationReading(p.getSiteKey())).collect(Collectors.toList());
         try {
             gaStationReadings.setGaStationReadings(executor.invokeAll(tasks).stream().map(f -> {
                 try {
                     return Optional.of(f.get());
-                } catch (InterruptedException e) {
-                    logger.log(Level.SEVERE, e.getMessage());
-                } catch (ExecutionException e) {
-                    logger.log(Level.SEVERE, e.getMessage());
+                } catch (ExecutionException | InterruptedException e) {
+                    logger.severe(e.getMessage());
                 }
                 return Optional.<GaStationReading>empty();
             }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
         } catch (InterruptedException e) {
-            logger.log(Level.SEVERE, e.getMessage());
+            logger.severe(e.getMessage());
+            gaStationReadings.setGaStationReadings(new ArrayList<>());
         }
         executor.shutdown();
         return gaStationReadings;
@@ -81,9 +83,8 @@ public class GaWeatherApp {
                     values.put(tdName, td.text().replace("&nbsp", "").replace("&degF", "F"));
                 }
             }
-            GaStationReading gaStationReading = new GaStationReading(values);
-            return gaStationReading;
-        } catch ( Exception e) {
+            return new GaStationReading(values);
+        } catch (Exception e) {
             String n = e.getClass().getName();
             throw new Exception("Site exception for " + siteKey + ": " + n);
         }
