@@ -1,4 +1,4 @@
-package gapercip;
+package gaweather;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -8,20 +8,16 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class GaWeatherApp {
     private ObjectMapper mapper;
+    Logger logger = Logger.getLogger(GaWeatherApp.class.getName());
 
     public static void main(String[] args) throws IOException {
         new GaWeatherApp().run();
@@ -48,42 +44,49 @@ public class GaWeatherApp {
 
     private GaStationReadings getGaStationReadings(GaStationProperties gaStationProperties) {
         GaStationReadings gaStationReadings = new GaStationReadings();
-        gaStationReadings.setGaStationReadings(new ArrayList<GaStationReading>());
-
         ExecutorService executor = Executors.newFixedThreadPool(gaStationProperties.getGaStationProperties().size());
-
         // invoiceIDs is a collection of Invoice IDs
         List<Callable<GaStationReading>> tasks = gaStationProperties.getGaStationProperties().stream().map(p -> (Callable<GaStationReading>) () -> getGaStationReading(p.getSiteKey())).collect(Collectors.toList());
         try {
-            List<Future<GaStationReading>> results = executor.invokeAll(tasks);
-            for (Future<GaStationReading> result : results) {
-                GaStationReading readingResult = result.get();
-                gaStationReadings.getGaStationReadings().add(readingResult);
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+            gaStationReadings.setGaStationReadings(executor.invokeAll(tasks).stream().map(f -> {
+                try {
+                    return Optional.of(f.get());
+                } catch (InterruptedException e) {
+                    logger.log(Level.SEVERE, e.getMessage());
+                } catch (ExecutionException e) {
+                    logger.log(Level.SEVERE, e.getMessage());
+                }
+                return Optional.<GaStationReading>empty();
+            }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
+        } catch (InterruptedException e) {
+            logger.log(Level.SEVERE, e.getMessage());
         }
         executor.shutdown();
         return gaStationReadings;
     }
 
-    private GaStationReading getGaStationReading(String siteKey) throws IOException {
-        Map<String, String> values = new HashMap<>();
-        values.put("siteKey", siteKey);
-        Element body = Jsoup.parse(URI.create("http://weather.uga.edu/index.php?variable=CC&site=" + siteKey).toURL(), 10000).body();
-        String observationDate = body.select("tr.TableTitleRow").select("td").get(0).text();
-        values.put("observationDate", observationDate);
-        for (Element element : body.select("tr.TableRow2[align=left]")) {
-            String tdName = element.select("td.tdClass").get(0).text().replace("&nbsp", "");
-            Element td = element.select("td.tdClass").get(1);
-            if (td.text().contentEquals("'")) {
-                values.put(tdName, td.select("img").attr("src").replace("/images/", "").replace("CUR.png", ""));
-            } else {
-                values.put(tdName, td.text().replace("&nbsp", "").replace("&degF", "F"));
+    private GaStationReading getGaStationReading(String siteKey) throws Exception {
+        try {
+            Map<String, String> values = new HashMap<>();
+            values.put("siteKey", siteKey);
+            Element body = Jsoup.parse(URI.create("http://weather.uga.edu/index.php?variable=CC&site=" + siteKey).toURL(), 10000).body();
+            String observationDate = body.select("tr.TableTitleRow").select("td").get(0).text();
+            values.put("observationDate", observationDate);
+            for (Element element : body.select("tr.TableRow2[align=left]")) {
+                String tdName = element.select("td.tdClass").get(0).text().replace("&nbsp", "");
+                Element td = element.select("td.tdClass").get(1);
+                if (td.text().contentEquals("'")) {
+                    values.put(tdName, td.select("img").attr("src").replace("/images/", "").replace("CUR.png", ""));
+                } else {
+                    values.put(tdName, td.text().replace("&nbsp", "").replace("&degF", "F"));
+                }
             }
+            GaStationReading gaStationReading = new GaStationReading(values);
+            return gaStationReading;
+        } catch ( Exception e) {
+            String n = e.getClass().getName();
+            throw new Exception("Site exception for " + siteKey + ": " + n);
         }
-        GaStationReading gaStationReading = new GaStationReading(values);
-        return gaStationReading;
     }
 
 }

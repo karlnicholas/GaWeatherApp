@@ -1,18 +1,11 @@
-package gapercip;
+package gaweather;
 
-import com.fasterxml.jackson.databind.util.BeanUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.apache.commons.csv.CSVRecord;
 
-import java.beans.BeanDescriptor;
-import java.beans.BeanInfo;
-import java.beans.BeanProperty;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Map;
 
 @Data

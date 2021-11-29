@@ -1,4 +1,4 @@
-package gapercip;
+package gaweather;
 
 import lombok.Data;
 

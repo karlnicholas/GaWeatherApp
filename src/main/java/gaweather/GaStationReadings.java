@@ -1,6 +1,5 @@
-package gapercip;
+package gaweather;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
