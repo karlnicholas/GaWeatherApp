@@ -1,0 +1,28 @@
+{"gaStGraph": [
+        {"siteKey": "LAFAYET", "edges": ["BLURIDGE", "FLOYD", "DALLAS"]},
+        {"siteKey": "BLURIDGE", "edges": ["BLAIRSVI", "ELLIJAY"]},
+        {"siteKey": "BLAIRSVI", "edges": ["TIGER", "DAHLON"]},
+        {"siteKey": "TIGER", "edges": ["ALTO", "ELBERTON"]},
+        {"siteKey": "FLOYD", "edges": ["CALHOUN", "DALLAS"]},
+        {"siteKey": "CALHOUN", "edges": ["ELLIJAY", "BALLGND"]},
+        {"siteKey": "ELLIJAY", "edges": ["BALLGND", "DAHLON"]},
+        {"siteKey": "DAHLON", "edges": ["ALTO", "OAKWOOD"]},
+        {"siteKey": "BALLGND", "edges": ["KENNESAW", "DULUTH"]},
+        {"siteKey": "OAKWOOD", "edges": ["ALTO", "WATUSDA"]},
+        {"siteKey": "ALTO", "edges": ["DANVILLE"]},
+        {"siteKey": "DANVILLE", "edges": ["ELBERTON", "WATUSDA"]},
+        {"siteKey": "WATUSDA", "edges": ["PENFIELD", "COVING"]},
+        {"siteKey": "DALLAS", "edges": ["WANSLEY", "KENNESAW", "JONESB"]},
+        {"siteKey": "KENNESAW", "edges": ["DULUTH"]},
+        {"siteKey": "DULUTH", "edges": ["JONESB", "COVING"]},
+        {"siteKey": "PENFIELD", "edges": ["EATONTON", "CLARKSHI"]},
+        {"siteKey": "CLARKSHI", "edges": []},
+        {"siteKey": "ELBERTON", "edges": ["CLARKSHI"]},
+        {"siteKey": "WANSLEY", "edges": ["JONESB"]},
+        {"siteKey": "JONESB", "edges": ["COVING"]},
+        {"siteKey": "COVING", "edges": ["EATONTON"]},
+        {"siteKey": "EATONTON", "edges": ["SPARTA"]},
+        {"siteKey": "SPARTA", "edges": ["DEARING"]},
+        {"siteKey": "DEARING", "edges": ["CLARKSHI"]}
+   ]
+}
