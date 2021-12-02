@@ -8,4 +8,5 @@ import java.util.List;
 public class GaStationNode {
     private String siteKey;
     private List<String> edges;
+    private int id;
 }

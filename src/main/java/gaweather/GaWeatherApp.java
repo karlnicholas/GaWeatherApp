@@ -10,6 +10,8 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -19,7 +21,6 @@ public class GaWeatherApp {
     public static void main(String[] args) {
         new GaWeatherApp().run();
     }
-
     private void run() {
         GaStationProperties gaStationProperties = loadStationProperties();
 //        GaStationReadings gaStationReadings = getGaStationReadings(gaStationProperties);
@@ -27,7 +28,55 @@ public class GaWeatherApp {
 //            System.out.println(gaStationReading);
 //        }
         GaStGraph gaStGraph = loadStGraph();
-        System.out.println(gaStGraph);
+        printVisGraph(gaStationProperties, gaStGraph);
+    }
+    private void printVisGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
+        System.out.println("var nodes = new vis.DataSet([");
+        int i = 1;
+        double maxLat = 0.0, maxLon = 0.0;
+        for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
+            GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
+            n.setId(i++);
+            if (gaStationProperty.getLatitude().doubleValue() > maxLat ) {
+                maxLat = gaStationProperty.getLatitude().doubleValue();
+            }
+            if (maxLon > gaStationProperty.getLongitude().doubleValue()) {
+                maxLon = gaStationProperty.getLongitude().doubleValue();
+            }
+        }
+        for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
+            GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
+            System.out.println("{ id: " + n.getId() + ", label: \"" + n.getSiteKey() + "\""
+                    + ", x: " + (int)((0 - (maxLon - gaStationProperty.getLongitude().doubleValue()))*300)
+                    + ", y: " + (int)((maxLat - gaStationProperty.getLatitude().doubleValue())*300)
+                    + "},");
+        }
+        System.out.println("]);");
+        System.out.println("var edges = new vis.DataSet([");
+        gaStGraph.getGaStGraph().forEach(n->{
+            gaStationProperties.getGaStationProperty(n.getSiteKey()).ifPresent(gaStationPropertyNode -> {
+                n.getEdges().forEach(e->{
+                    gaStationProperties.getGaStationProperty(e).ifPresent(gaStationPropertyEdge -> {
+                        gaStGraph.getGaStationNode(gaStationPropertyEdge.getSiteKey()).ifPresent(gaStationNode -> {
+//                            double distance = distance(
+//                                    gaStationPropertyNode.getLatitude().doubleValue(),
+//                                    gaStationPropertyEdge.getLatitude().doubleValue(),
+//                                    gaStationPropertyNode.getLongitude().doubleValue(),
+//                                    gaStationPropertyEdge.getLongitude().doubleValue(),
+//                                    gaStationPropertyNode.getElevation().doubleValue(),
+//                                    gaStationPropertyEdge.getElevation().doubleValue()
+//                            );
+                            System.out.println("{ from: " + n.getId() + " , to:  " + gaStationNode.getId() + "},");
+                        });
+                    });
+                });
+            });
+        });
+        System.out.println("]);");
+    }
+
+    private void printDOTGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
+        System.out.println("gaweather {");
         gaStGraph.getGaStGraph().forEach(n->{
             gaStationProperties.getGaStationProperty(n.getSiteKey()).ifPresent(gaStationPropertyNode -> {
                 n.getEdges().forEach(e->{
@@ -40,12 +89,14 @@ public class GaWeatherApp {
                                 gaStationPropertyNode.getElevation().doubleValue(),
                                 gaStationPropertyEdge.getElevation().doubleValue()
                         );
-                        System.out.println("Distance " + gaStationPropertyNode.getSiteKey() + ":" + gaStationPropertyEdge.getSiteKey() + " = " + (int)((distance/1609) + .5));
+                        System.out.println(gaStationPropertyNode.getSiteKey()  + " -- " + gaStationPropertyEdge.getSiteKey() + "[len=" + String.format("%1$.1f", distance/1609) + "]; \\");
                     });
                 });
             });
         });
+        System.out.println("}");
     }
+
     /**
      * Calculate distance between two points in latitude and longitude taking
      * into account height difference. If you are not interested in height
