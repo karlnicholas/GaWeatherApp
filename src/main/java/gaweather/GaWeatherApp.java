@@ -33,21 +33,21 @@ public class GaWeatherApp {
     private void printVisGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
         System.out.println("var nodes = new vis.DataSet([");
         int i = 1;
-        double maxLat = 0.0, maxLon = 0.0;
+        double maxLat = 0.0, minLon = 0.0;
         for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
             GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
             n.setId(i++);
             if (gaStationProperty.getLatitude().doubleValue() > maxLat ) {
                 maxLat = gaStationProperty.getLatitude().doubleValue();
             }
-            if (maxLon > gaStationProperty.getLongitude().doubleValue()) {
-                maxLon = gaStationProperty.getLongitude().doubleValue();
+            if (minLon > gaStationProperty.getLongitude().doubleValue()) {
+                minLon = gaStationProperty.getLongitude().doubleValue();
             }
         }
         for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
             GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
             System.out.println("{ id: " + n.getId() + ", label: \"" + n.getSiteKey() + "\""
-                    + ", x: " + (int)((0 - (maxLon - gaStationProperty.getLongitude().doubleValue()))*300)
+                    + ", x: " + (int)((0 - (minLon - gaStationProperty.getLongitude().doubleValue()))*300)
                     + ", y: " + (int)((maxLat - gaStationProperty.getLatitude().doubleValue())*300)
                     + "},");
         }
