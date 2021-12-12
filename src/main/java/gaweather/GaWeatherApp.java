@@ -10,8 +10,6 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -27,9 +25,57 @@ public class GaWeatherApp {
 //        for (GaStationReading gaStationReading : gaStationReadings.getGaStationReadings()) {
 //            System.out.println(gaStationReading);
 //        }
-        GaStGraph gaStGraph = loadStGraph();
-        printVisGraph(gaStationProperties, gaStGraph);
+//        GaStGraph gaStGraph = loadStGraph();
+        printStationClasses(gaStationProperties);
     }
+
+    private void printStationClasses(GaStationProperties gaStationProperties) {
+        System.out.println("locations = [");
+        GaState gaState = new GaState();
+        // -84.386330 - -81.088371 = -3.297959
+        double xDblDiff = gaState.getAtlLongitude().doubleValue() - gaState.getSavLongitude().doubleValue();
+        // 225 - 827 = -602
+        int xIntDiff = gaState.getAtlX() - gaState.getSavX();
+        // -602 / -3.297959 = 182.5371388789248
+        double xScale =  (double)xIntDiff / xDblDiff;
+        // 33.753746 - 32.076176 = 1.67757
+        double yDblDiff = gaState.getAtlLatitude().doubleValue() - gaState.getSavLatitude().doubleValue();
+        // 278 - 644 = -366
+        int yIntDiff = gaState.getAtlY() - gaState.getSavY();
+        // -366 / 1.67757 = -218.1727141043295
+        double yScale =  (double)yIntDiff / yDblDiff;
+
+        for ( GaStationProperty gaStationProp: gaStationProperties.getGaStationProperties() ) {
+            double xDist = gaState.getAtlLongitude().doubleValue() - gaStationProp.getLongitude().doubleValue();
+            int xPixLoc = gaState.getAtlX() - (int)(xDist * xScale);
+            double yDist = gaState.getAtlLatitude().doubleValue() - gaStationProp.getLatitude().doubleValue();
+            int yPixLoc = gaState.getAtlY() - (int)(yDist * yScale);
+            System.out.println("new Station('"
+                    + gaStationProp.getSiteKey()
+                    + "', "
+                    + xPixLoc
+                    + ", "
+                    + yPixLoc
+                    +"), "
+            );
+
+        }
+//        GaStationProperty gaStationProp = gaStationProperties.getGaStationProperty("LAFAYET").get();
+//        double xDist = gaState.getAtlLongitude().doubleValue() - gaStationProp.getLongitude().doubleValue();
+//        int xPixLoc = gaState.getAtlX() - (int)(xDist * xScale);
+//        double yDist = gaState.getAtlLatitude().doubleValue() - gaStationProp.getLatitude().doubleValue();
+//        int yPixLoc = gaState.getAtlY() - (int)(yDist * yScale);
+//        System.out.println("new Station("
+//                + gaStationProp.getSiteKey()
+//                + ", "
+//                + xPixLoc
+//                + ", "
+//                + yPixLoc
+//                +"), "
+//        );
+        System.out.println("];");
+    }
+
     private void printVisGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
         System.out.println("var nodes = new vis.DataSet([");
         int i = 1;
@@ -44,11 +90,18 @@ public class GaWeatherApp {
                 minLon = gaStationProperty.getLongitude().doubleValue();
             }
         }
+//        for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
+//            GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
+//            System.out.println("{ id: " + n.getId() + ", label: \"" + n.getSiteKey() + "\""
+//                    + ", x: " + (int)((0 - (minLon - gaStationProperty.getLongitude().doubleValue()))*300)
+//                    + ", y: " + (int)((maxLat - gaStationProperty.getLatitude().doubleValue())*300)
+//                    + "},");
+//        }
         for ( GaStationNode n: gaStGraph.getGaStGraph() ) {
             GaStationProperty gaStationProperty = gaStationProperties.getGaStationProperty(n.getSiteKey()).get();
             System.out.println("{ id: " + n.getId() + ", label: \"" + n.getSiteKey() + "\""
-                    + ", x: " + (int)((0 - (minLon - gaStationProperty.getLongitude().doubleValue()))*300)
-                    + ", y: " + (int)((maxLat - gaStationProperty.getLatitude().doubleValue())*300)
+//                    + ", x: " + (int)((0 - (minLon - gaStationProperty.getLongitude().doubleValue()))*300)
+//                    + ", y: " + (int)((maxLat - gaStationProperty.getLatitude().doubleValue())*300)
                     + "},");
         }
         System.out.println("]);");
@@ -58,15 +111,15 @@ public class GaWeatherApp {
                 n.getEdges().forEach(e->{
                     gaStationProperties.getGaStationProperty(e).ifPresent(gaStationPropertyEdge -> {
                         gaStGraph.getGaStationNode(gaStationPropertyEdge.getSiteKey()).ifPresent(gaStationNode -> {
-//                            double distance = distance(
-//                                    gaStationPropertyNode.getLatitude().doubleValue(),
-//                                    gaStationPropertyEdge.getLatitude().doubleValue(),
-//                                    gaStationPropertyNode.getLongitude().doubleValue(),
-//                                    gaStationPropertyEdge.getLongitude().doubleValue(),
-//                                    gaStationPropertyNode.getElevation().doubleValue(),
-//                                    gaStationPropertyEdge.getElevation().doubleValue()
-//                            );
-                            System.out.println("{ from: " + n.getId() + " , to:  " + gaStationNode.getId() + "},");
+                            double distance = distance(
+                                    gaStationPropertyNode.getLatitude().doubleValue(),
+                                    gaStationPropertyEdge.getLatitude().doubleValue(),
+                                    gaStationPropertyNode.getLongitude().doubleValue(),
+                                    gaStationPropertyEdge.getLongitude().doubleValue(),
+                                    gaStationPropertyNode.getElevation().doubleValue(),
+                                    gaStationPropertyEdge.getElevation().doubleValue()
+                            );
+                            System.out.println("{ from: " + n.getId() + " , to:  " + gaStationNode.getId() + ", length: " + String.format("%1$.1f", distance/1609) + "},");
                         });
                     });
                 });
@@ -89,7 +142,7 @@ public class GaWeatherApp {
                                 gaStationPropertyNode.getElevation().doubleValue(),
                                 gaStationPropertyEdge.getElevation().doubleValue()
                         );
-                        System.out.println(gaStationPropertyNode.getSiteKey()  + " -- " + gaStationPropertyEdge.getSiteKey() + "[len=" + String.format("%1$.1f", distance/1609) + "]; \\");
+                        System.out.println(gaStationPropertyNode.getSiteKey()  + " -- " + gaStationPropertyEdge.getSiteKey() + ", length: " + String.format("%1$.1f", distance/1609) + "]; \\");
                     });
                 });
             });
