@@ -1,6 +1,9 @@
 package gaweather;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.jsoup.Jsoup;
@@ -10,26 +13,42 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class GaWeatherApp {
     private final Logger logger = Logger.getLogger(GaWeatherApp.class.getName());
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private final Pattern p = Pattern.compile("^(\\d+)");
 
-    public static void main(String[] args) {
+
+    public static void main(String[] args) throws IOException {
         new GaWeatherApp().run();
     }
-    private void run() {
+    private void run() throws IOException {
         GaStationProperties gaStationProperties = loadStationProperties();
 //        GaStationReadings gaStationReadings = getGaStationReadings(gaStationProperties);
+//        System.out.println(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(gaStationReadings));
+        GaStationReadings gaStationReadings = objectMapper.readValue(GaWeatherApp.class.getResourceAsStream("/SampleRead.json"), GaStationReadings.class);
 //        for (GaStationReading gaStationReading : gaStationReadings.getGaStationReadings()) {
 //            System.out.println(gaStationReading);
 //        }
 //        GaStGraph gaStGraph = loadStGraph();
-        printStationClasses(gaStationProperties);
+        printStationClasses(gaStationProperties, gaStationReadings);
     }
 
-    private void printStationClasses(GaStationProperties gaStationProperties) {
+    Function<GaStationReading, String> tempToInt = r-> {
+        String t = r.getTemperature();
+        if ( t == null ) return "null";
+        Matcher m = p.matcher(t);
+        if ( m.find() ) return m.group();
+        else return "null";
+    };
+
+    private void printStationClasses(GaStationProperties gaStationProperties, GaStationReadings gaStationReadings) {
         System.out.println("locations = [");
         GaState gaState = new GaState();
         // -84.386330 - -81.088371 = -3.297959
@@ -56,6 +75,10 @@ public class GaWeatherApp {
                     + xPixLoc
                     + ", "
                     + yPixLoc
+                    + ", "
+                    + gaStationReadings.getGaStationReading(gaStationProp.getSiteKey())
+                        .map(tempToInt)
+                    .orElse("null")
                     +"), "
             );
 
@@ -200,7 +223,6 @@ public class GaWeatherApp {
 
     private GaStGraph loadStGraph() {
         GaStGraph gaStGraph = new GaStGraph();
-        ObjectMapper objectMapper = new ObjectMapper();
         InputStream resource = GaWeatherApp.class.getResourceAsStream("/GaStGraph.json");
         if ( resource != null ) {
             try (InputStreamReader in = new InputStreamReader(resource)) {

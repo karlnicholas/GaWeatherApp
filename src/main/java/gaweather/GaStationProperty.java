@@ -14,6 +14,7 @@ public class GaStationProperty {
     public enum GaStationPropertyHeader {
         city,county,zipCode,localSiteName,latitude,longitude,elevation,siteId,dateOfInstallation,siteKey
     }
+    public GaStationProperty() {}
     public GaStationProperty(Map<String, String> map) {
         this(
                 map.get("city"),
