@@ -40,20 +40,6 @@ public class GaWeatherApp {
         printStationClasses(gaStationProperties, gaStationReadings);
     }
 
-    private String tempToInt(GaStationReading r ) {
-        String t = r.getTemperature();
-        if ( t == null ) return "null";
-        Matcher m = p.matcher(t);
-        if ( m.find() ) return m.group();
-        else return "null";
-    };
-
-    private String windSpeedToInt(GaStationReading r ) {
-        String t = r.getWindSpeed();
-        if ( t == null ) return "null";
-        return Integer.toString((int)(Double.valueOf(t.replace(" mph", "")).doubleValue() + 0.5));
-    };
-
     private void printStationClasses(GaStationProperties gaStationProperties, GaStationReadings gaStationReadings) {
         System.out.println("locations = [");
         GaState gaState = new GaState();
@@ -86,6 +72,10 @@ public class GaWeatherApp {
                     + tempToInt(gaStationReading)
                     + ", "
                     + windSpeedToInt(gaStationReading)
+                    + ", "
+                    + windDirectionToDegrees(gaStationReading)
+                    + ", "
+                    + windGustToInt(gaStationReading)
                     +"), "
             );
 
@@ -105,6 +95,32 @@ public class GaWeatherApp {
 //        );
         System.out.println("];");
     }
+
+    private String tempToInt(GaStationReading r ) {
+        String t = r.getTemperature();
+        if ( t == null ) return "null";
+        Matcher m = p.matcher(t);
+        if ( m.find() ) return m.group();
+        else return "null";
+    };
+
+    private String windSpeedToInt(GaStationReading r ) {
+        String t = r.getWindSpeed();
+        if ( t == null ) return "null";
+        return Integer.toString((int)(Double.valueOf(t.substring(0, t.indexOf(' '))).doubleValue() + 0.5));
+    };
+
+    private String windDirectionToDegrees(GaStationReading r ) {
+        String t = r.getWindDirection();
+        if ( t == null ) return "null";
+        return Integer.toString(CompassDirections.convertToDegrees(CompassDirections.valueOf(t)));
+    };
+
+    private String windGustToInt(GaStationReading r ) {
+        String t = r.getWindGust();
+        if ( t == null ) return "null";
+        return Integer.toString((int)(Double.valueOf(t.substring(0, t.indexOf(' '))).doubleValue() + 0.5));
+    };
 
     private void printVisGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
         System.out.println("var nodes = new vis.DataSet([");
