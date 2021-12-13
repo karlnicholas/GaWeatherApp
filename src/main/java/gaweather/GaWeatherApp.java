@@ -40,12 +40,18 @@ public class GaWeatherApp {
         printStationClasses(gaStationProperties, gaStationReadings);
     }
 
-    Function<GaStationReading, String> tempToInt = r-> {
+    private String tempToInt(GaStationReading r ) {
         String t = r.getTemperature();
         if ( t == null ) return "null";
         Matcher m = p.matcher(t);
         if ( m.find() ) return m.group();
         else return "null";
+    };
+
+    private String windSpeedToInt(GaStationReading r ) {
+        String t = r.getWindSpeed();
+        if ( t == null ) return "null";
+        return Integer.toString((int)(Double.valueOf(t.replace(" mph", "")).doubleValue() + 0.5));
     };
 
     private void printStationClasses(GaStationProperties gaStationProperties, GaStationReadings gaStationReadings) {
@@ -69,6 +75,7 @@ public class GaWeatherApp {
             int xPixLoc = gaState.getAtlX() - (int)(xDist * xScale);
             double yDist = gaState.getAtlLatitude().doubleValue() - gaStationProp.getLatitude().doubleValue();
             int yPixLoc = gaState.getAtlY() - (int)(yDist * yScale);
+            GaStationReading gaStationReading = gaStationReadings.getGaStationReading(gaStationProp.getSiteKey()).get();
             System.out.println("new Station('"
                     + gaStationProp.getSiteKey()
                     + "', "
@@ -76,9 +83,9 @@ public class GaWeatherApp {
                     + ", "
                     + yPixLoc
                     + ", "
-                    + gaStationReadings.getGaStationReading(gaStationProp.getSiteKey())
-                        .map(tempToInt)
-                    .orElse("null")
+                    + tempToInt(gaStationReading)
+                    + ", "
+                    + windSpeedToInt(gaStationReading)
                     +"), "
             );
 
