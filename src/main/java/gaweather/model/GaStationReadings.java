@@ -1,4 +1,4 @@
-package gaweather;
+package gaweather.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;

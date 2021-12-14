@@ -1,4 +1,4 @@
-package gaweather;
+package gaweather.model;
 
 import lombok.Data;
 

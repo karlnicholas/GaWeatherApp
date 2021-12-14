@@ -1,4 +1,4 @@
-package gaweather;
+package gaweather.model;
 
 public enum CompassDirections {
     N, NNNE, NNE, NE, ENE, EENE,
