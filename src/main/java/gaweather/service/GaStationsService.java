@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class GaStationsService {
@@ -43,18 +44,22 @@ public class GaStationsService {
             int xPixLoc = gaState.getAtlX() - (int) (xDist * xScale);
             double yDist = gaState.getAtlLatitude().doubleValue() - gaStationProp.getLatitude().doubleValue();
             int yPixLoc = gaState.getAtlY() - (int) (yDist * yScale);
-            GaStationReading gaStationReading = gaStationReadingService.getGaStationReadings().getGaStationReading(gaStationProp.getSiteKey()).get();
-            GaStationDto gaStationDto = GaStationDto.builder()
-                    .key(gaStationProp.getSiteKey())
-                    .x(xPixLoc)
-                    .y(yPixLoc)
-                    .temp(tempToInt(gaStationReading))
-                    .windSpeed(windSpeedToInt(gaStationReading))
-                    .windDir(windDirectionToDegrees(gaStationReading))
-                    .windGust(windGustToInt(gaStationReading))
-                    .build();
-            gaStationDtoList.add(gaStationDto);
+            Optional<GaStationReading> gaStationReadingOpt = gaStationReadingService.getGaStationReadings().getGaStationReading(gaStationProp.getSiteKey());
+            gaStationReadingOpt.ifPresent(gaStationReading-> {
+                GaStationDto gaStationDto = GaStationDto.builder()
+                        .key(gaStationProp.getSiteKey())
+                        .x(xPixLoc)
+                        .y(yPixLoc)
+                        .temp(tempToInt(gaStationReading))
+                        .windSpeed(windSpeedToInt(gaStationReading))
+                        .windDir(windDirectionToDegrees(gaStationReading))
+                        .windGust(windGustToInt(gaStationReading))
+                        .solar(solarRadiationToInt(gaStationReading))
+                        .elevation(gaStationProp.getElevation().intValue())
+                        .build();
+                gaStationDtoList.add(gaStationDto);
 
+            });
         }
         return GaStationsDto.builder().gaStations(gaStationDtoList).build();
     }
@@ -62,13 +67,13 @@ public class GaStationsService {
     private int tempToInt(GaStationReading r) {
         String t = r.getTemperature();
         if (t == null) return 0;
-        return (int) (Double.valueOf(t.substring(0, t.indexOf(' '))).doubleValue() + 0.5);
+        return (int) (Double.parseDouble(t.substring(0, t.indexOf(' '))) + 0.5);
     }
 
     private int windSpeedToInt(GaStationReading r) {
         String t = r.getWindSpeed();
         if (t == null) return 0;
-        return (int) (Double.valueOf(t.substring(0, t.indexOf(' '))).doubleValue() + 0.5);
+        return (int) (Double.parseDouble(t.substring(0, t.indexOf(' '))) + 0.5);
     }
 
     private int windDirectionToDegrees(GaStationReading r) {
@@ -80,7 +85,12 @@ public class GaStationsService {
     private int windGustToInt(GaStationReading r) {
         String t = r.getWindGust();
         if (t == null) return 0;
-        return (int) (Double.valueOf(t.substring(0, t.indexOf(' '))).doubleValue() + 0.5);
+        return (int) (Double.parseDouble(t.substring(0, t.indexOf(' '))) + 0.5);
     }
 
+    private int solarRadiationToInt(GaStationReading r) {
+        String t = r.getSolarRadiation();
+        if (t == null) return 0;
+        return (int) (Double.parseDouble(t.substring(0, t.indexOf(' '))) + 0.5);
+    }
 }

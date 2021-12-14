@@ -17,4 +17,6 @@ public class GaStationDto {
     private int windSpeed;
     private int windDir;
     private int windGust;
+    private int solar;
+    private int elevation;
 }
