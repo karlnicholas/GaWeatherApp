@@ -35,7 +35,8 @@ require("babel-polyfill");
     // draw the ball (only object in this scene)
     if ( locations ) {
       locations.forEach(l => {
-        hue = 200 + (160 * ( l.temp / 100 ))
+        // hue = 200 + (160 * ( l.temp / 100 ))
+        hue = getHue((l.temp - 32) / 1.8)
         ctx.beginPath()
         ctx.fillStyle='hsl(' + hue + ',100%,50%)'
         startDeg = ((l.windDir - 90 + 360) % 360)
@@ -96,6 +97,21 @@ require("babel-polyfill");
     }
   }
 
+  function getHue(t) {
+      // Map the temperature to a 0-1 range
+      var a = (t + 30)/60;
+      a = (a < 0) ? 0 : ((a > 1) ? 1 : a);
+      
+      // Scrunch the green/cyan range in the middle
+      var sign = (a < .5) ? -1 : 1;
+      a = sign * Math.pow(2 * Math.abs(a - .5), .35)/2 + .5;
+      
+      // Linear interpolation between the cold and hot
+      var h0 = 259;
+      var h1 = 12;
+      var h = (h0) * (1 - a) + (h1) * (a);
+      return h;
+  }
   // the main piece of the loop
   // runs everything
   function update () {
