@@ -40,10 +40,7 @@ require("babel-polyfill");
     }
     if ( locations ) {
       locations.forEach(l => {
-        // hue = 200 + (160 * ( l.temp / 100 ))
-        hue = getHue((l.temp - 32) / 1.8)
         // drawMapPin(ctx, hue, l.x, l.y, radius, l.windSpeed, l.windDir)
-        drawWindInd(ctx, l, tm)
         e = l.elevation / 100;
         m1 = e / 2;
         m2 = e - m1;
@@ -55,12 +52,30 @@ require("babel-polyfill");
         ctx.lineTo(l.x + m2, l.y + m1) // right side
         ctx.closePath()
         ctx.stroke()
-      
+
+        // if ( l.humidity > 90 && l.rainFall === 0 ) {
+        //   ctx.beginPath()
+        //   ctx.lineWidth = 1
+        //   ctx.strokeStyle='hsl(190,100%,50%)'
+        //   ctx.arc(l.x, l.y, radius, 0, Math.PI*2)
+        //   ctx.stroke()
+        // } else if ( l.rainFall >  0 ) {
+        if ( l.rainFall >  0 ) {
+          r = l.rainFall
+          ctx.beginPath()
+          ctx.lineWidth = r
+          ctx.strokeStyle='hsl(210,100%,50%)'
+          ctx.arc(l.x, l.y, radius + r/2, 0, Math.PI*2)
+          ctx.stroke()
+        }
+        drawWindInd(ctx, l, tm)
       })
     }
   }
 
   function drawWindInd(ctx, l, tm) {
+    // hue = 200 + (160 * ( l.temp / 100 ))
+    hue = getHue((l.temp - 32) / 1.8)
     ctx.beginPath()
     ctx.fillStyle='hsl(' + hue + ',100%,50%)'
     startDeg = ((l.windDir - 90 + 360) % 360)
@@ -72,10 +87,10 @@ require("babel-polyfill");
     ctx.fill()
 
     // 1000 - 0 -> 100 - 0
-    sat = l.solar / 10
+    sat = l.solar / 10.0
     ctx.beginPath()
     // ctx.strokeStyle='hsl( 196,' + sat + '%,50%)'
-    ctx.fillStyle='hsl( 196,' + sat + '%,50%)'
+    ctx.fillStyle='hsl(180,100%,' + sat + '%)'
     // ctx.lineWidth = 2;
     ctx.arc(l.x, l.y, radius, endAngle, startAngle )
     // ctx.arc(l.x, l.y, radius+1, 0, Math.PI * 2)
@@ -100,39 +115,6 @@ require("babel-polyfill");
     ctx.lineTo(l.x + tailEndX, l.y + tailEndY) // right side
     ctx.fill()
 
-  }
-
-  function drawMapPin(ctx, hue, x = 60, y = 60, r = 10, l = 10, d = 90) {
-    ctx.save()
-    pCanvas = document.createElement('canvas')
-    pCanvas.width = r*2
-    pCanvas.height = r + l
-    pCtx = pCanvas.getContext('2d')
-
-    pCtx.translate(r, (r+l)/2)
-    pCtx.rotate(d * (Math.PI/180))
-    pCtx.translate(-r, -((r+l)/2))
-    pCtx.fillStyle='black'
-    pCtx.beginPath();
-    pCtx.moveTo(r*2,r);
-    pCtx.bezierCurveTo(r*2, 0, 0, 0, 0, r)
-    pCtx.quadraticCurveTo(0, r + l/2, r, r + l);
-    pCtx.quadraticCurveTo(r*2, r + l/2, r*2, r);
-    pCtx.fill();
-    ctx.drawImage(pCanvas, x, y)
-    ctx.restore()
-  }
-
-  function drawMapPin2(ctx, x = 60, y = 60, r = 10, l = 10, d = 90) {
-    ctx.save()
-    ctx.fillStyle='black'
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.bezierCurveTo(x+r, y-r, x-r, y-r, x-r, y)
-    ctx.quadraticCurveTo(x-r, y + l/2, x, y + l);
-    ctx.quadraticCurveTo(x + r, y + l/2, x + r, y);
-    ctx.fill();
-    ctx.restore()
   }
 
   function getHue(t) {

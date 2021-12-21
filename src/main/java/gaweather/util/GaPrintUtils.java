@@ -3,19 +3,42 @@ package gaweather.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import gaweather.GaWeatherApp;
-import gaweather.model.GaStGraph;
-import gaweather.model.GaStationNode;
-import gaweather.model.GaStationProperties;
-import gaweather.model.GaStationProperty;
+import gaweather.model.*;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 public class GaPrintUtils {
     private final Logger logger = Logger.getLogger(GaPrintUtils.class.getName());
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM dd, uuuu");
+    public static void main(String[] args) {
+        String c = "Conditions at 12:45 PM EST on December 20, 2021";
+        System.out.println(observationToDateTime(c));
+    }
+    private static LocalDateTime observationToDateTime(String t) {
+//        String t = r.getObservationDate();
+        if (t == null) return LocalDateTime.now();
+        t = t.substring(14).replace("January", "Jan")
+                .replace("February", "Feb")
+                .replace("March", "Mar")
+                .replace("April", "Apr")
+//                .replace("May", "May")
+                .replace("June", "Jun")
+                .replace("July","Jul")
+                .replace("August","Aug")
+                .replace("September","Sep")
+                .replace("October","Oct")
+                .replace("November","Nov")
+                .replace("December","Dec");
+        return LocalDateTime.parse(t, df);
+    }
 
     private void printVisGraph(GaStationProperties gaStationProperties, GaStGraph gaStGraph) {
         System.out.println("var nodes = new vis.DataSet([");

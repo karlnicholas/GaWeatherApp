@@ -1,6 +1,7 @@
 package gaweather.service;
 
-import gaweather.GaWeatherApp;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gaweather.model.GaStationProperties;
 import gaweather.model.GaStationReading;
 import gaweather.model.GaStationReadings;
@@ -24,11 +25,13 @@ public class GaStationReadingService {
     private final Logger logger = Logger.getLogger(GaStationReadingService.class.getName());
     private final GaStationProperties gaStationProperties;
     private GaStationReadings gaStationReadings;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public GaStationReadingService(GaStationProperties gaStationProperties) {
+    public GaStationReadingService(GaStationProperties gaStationProperties, ObjectMapper objectMapper) {
         this.gaStationProperties = gaStationProperties;
-        this.gaStationReadings = null;
+        this.objectMapper = objectMapper;
+        this.gaStationReadings = new GaStationReadings();
     }
 
     public GaStationReadings getGaStationReadings() {
@@ -37,12 +40,12 @@ public class GaStationReadingService {
 
     @Scheduled(fixedRate = 900000, initialDelay = 0)
     public void readGaStations() {
-        gaStationReadings = readGaStationReadings();
+        readGaStationReadings();
         logger.info("GaStationReadings executed: " + gaStationReadings.getGaStationReadings().size() + " stations read.");
     }
 
-    private GaStationReadings readGaStationReadings() {
-        GaStationReadings gaStationReadings = new GaStationReadings();
+    private void readGaStationReadings() {
+        gaStationReadings.saveCurrentToPrior();
         ExecutorService executor = Executors.newFixedThreadPool(gaStationProperties.getGaStationProperties().size());
         List<Callable<GaStationReading>> tasks = gaStationProperties.getGaStationProperties()
                 .stream().map(p ->
@@ -56,12 +59,12 @@ public class GaStationReadingService {
                 }
                 return Optional.<GaStationReading>empty();
             }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
-        } catch (InterruptedException e) {
+            System.out.println(objectMapper.writeValueAsString(gaStationReadings.getGaStationReadings()));
+        } catch (InterruptedException | JsonProcessingException e) {
             logger.severe(e.getMessage());
             gaStationReadings.setGaStationReadings(new ArrayList<>());
         }
         executor.shutdown();
-        return gaStationReadings;
     }
 
     private GaStationReading readGaStationReading(String siteKey) throws Exception {
