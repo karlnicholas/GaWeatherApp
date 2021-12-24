@@ -53,17 +53,18 @@ require("babel-polyfill");
         ctx.closePath()
         ctx.stroke()
 
-        // if ( l.humidity > 90 && l.rainFall === 0 ) {
-        //   ctx.beginPath()
-        //   ctx.lineWidth = 1
-        //   ctx.strokeStyle='hsl(190,100%,50%)'
-        //   ctx.arc(l.x, l.y, radius, 0, Math.PI*2)
-        //   ctx.stroke()
-        // } else if ( l.rainFall >  0 ) {
-        if ( l.rainFall >  0 ) {
+        if ( l.humidity > 90 ) {
+          ctx.beginPath()
+          ctx.lineWidth = 1
+          ctx.strokeStyle='hsl(190,100%,50%)'
+          ctx.arc(l.x, l.y, radius, 0, Math.PI*2)
+          ctx.stroke()
+        } else if ( l.rainFall >  0 ) {
+        // if ( l.rainFall >  0 ) {
           r = l.rainFall
           ctx.beginPath()
-          ctx.lineWidth = r
+          ctx.lineWidth = r - 0.51 + tm
+          // ctx.lineWidth = r
           ctx.strokeStyle='hsl(210,100%,50%)'
           ctx.arc(l.x, l.y, radius + r/2, 0, Math.PI*2)
           ctx.stroke()

@@ -3,12 +3,15 @@ package gaweather.service;
 import gaweather.dto.GaStationDto;
 import gaweather.dto.GaStationsDto;
 import gaweather.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +20,7 @@ import static java.time.temporal.ChronoUnit.HOURS;
 
 @Service
 public class GaStationsService {
+    Logger logger = LoggerFactory.getLogger(GaStationsService.class);
     private final GaStationProperties gaStationProperties;
     private final GaStationReadingService gaStationReadingService;
     private final GaState gaState;
@@ -67,7 +71,7 @@ public class GaStationsService {
                     }
                     return a;
                 }).orElse(0.0);
-                System.out.println("rail: " + gaStationProp.getSiteKey() + ":" + (int)(rainFall + 0.5));
+//System.out.println("rain: " + gaStationProp.getSiteKey() + ":" + (int)(rainFall + 0.5));
                 GaStationDto gaStationDto = GaStationDto.builder()
                         .key(gaStationProp.getSiteKey())
                         .x(xPixLoc)
@@ -98,7 +102,15 @@ public class GaStationsService {
     private LocalDateTime observationToDateTime(GaStationReading r) {
         String t = r.getObservationDate();
         if (t == null) return LocalDateTime.now();
-        t = t.substring(14).replace("January", "Jan")
+        int i = t.indexOf("onditions on ");
+        if ( i < 0 ) {
+            i = t.indexOf("onditions at ");
+            if ( i < 0 ) {
+                logger.error("Unparsable: {} {} ", r.getSiteKey(), t);
+                return LocalDateTime.now();
+            }
+        }
+        t = t.substring(i + 13).replace("January", "Jan")
                 .replace("February", "Feb")
                 .replace("March", "Mar")
                 .replace("April", "Apr")
@@ -110,7 +122,12 @@ public class GaStationsService {
                 .replace("October","Oct")
                 .replace("November","Nov")
                 .replace("December","Dec");
-        return LocalDateTime.parse(t, df);
+        try {
+            return LocalDateTime.parse(t, df);
+        } catch ( DateTimeParseException dte ) {
+            logger.error("DateTimeParseException: " + r.getSiteKey() + " " + t, dte);
+            return LocalDateTime.now();
+        }
     }
 
     private int tempToInt(GaStationReading r) {
