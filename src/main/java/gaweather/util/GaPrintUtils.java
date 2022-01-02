@@ -1,27 +1,70 @@
 package gaweather.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import gaweather.GaWeatherApp;
+import gaweather.dto.GaStationDto;
+import gaweather.dto.GaStationsDto;
 import gaweather.model.*;
+import gaweather.service.GaStationPropertiesComponent;
+import gaweather.service.GaStationsService;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Locale;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 public class GaPrintUtils {
     private final Logger logger = Logger.getLogger(GaPrintUtils.class.getName());
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-    private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM dd, uuuu");
-    public static void main(String[] args) {
-        String c = "Conditions at 12:45 PM EST on December 20, 2021";
-        System.out.println(observationToDateTime(c));
+    private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM d, uuuu");
+    public static void main(String[] args) throws IOException {
+//        String c = "Conditions at 12:45 PM EST on December 20, 2021";
+        List<GaStationReadings> sampleReads = new GaPrintUtils().loadSampleReads();
+        GaStationPropertiesComponent gaStationPropertiesComponent = new GaStationPropertiesComponent();
+        GaStationsService gaStationsService = new GaStationsService(gaStationPropertiesComponent.loadStationProperties());
+        for ( GaStationReadings gaStationReadings: sampleReads) {
+            GaStationsDto dto = gaStationsService.getGaStationsDto(gaStationReadings);
+            System.out.println("====================================");
+            for ( GaStationDto gaStation: dto.getGaStations()) {
+                if ( gaStation.getRainFall() > 0 ) {
+                    System.out.println("\t" + nDots(gaStation.getRainFall())  + "\t" + gaStation.getKey());
+                }
+            }
+            System.out.println();
+        }
+        System.out.println();
     }
+
+    private static String nDots(int rainFall) {
+        char[] c = new char[rainFall];
+        Arrays.fill(c, '.');
+        return new String(c);
+    }
+
+    private List<GaStationReadings> loadSampleReads() throws IOException {
+        List<GaStationReading> lastReadings = null;
+        List<GaStationReadings> readings = new ArrayList<>();
+        InputStream is = GaPrintUtils.class.getResourceAsStream("/SampleRead.json");
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String line;
+        while ( (line = br.readLine()) != null ) {
+            List<GaStationReading> l = objectMapper.readValue(line, new TypeReference<List<GaStationReading>>() {});
+            GaStationReadings rs = new GaStationReadings();
+            rs.setGaStationReadings(l);
+            rs.setPriorGaStationReadings(lastReadings);
+            readings.add(rs);
+            lastReadings = l;
+        }
+        br.close();
+        return readings;
+    }
+
     private static LocalDateTime observationToDateTime(String t) {
 //        String t = r.getObservationDate();
         if (t == null) return LocalDateTime.now();

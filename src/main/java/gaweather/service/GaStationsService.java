@@ -22,15 +22,13 @@ import static java.time.temporal.ChronoUnit.HOURS;
 public class GaStationsService {
     Logger logger = LoggerFactory.getLogger(GaStationsService.class);
     private final GaStationProperties gaStationProperties;
-    private final GaStationReadingService gaStationReadingService;
     private final GaState gaState;
     private final double xScale, yScale;
-    private final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM dd, uuuu");
+    private final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM [d][dd], uuuu");
 
     @Autowired
-    public GaStationsService(GaStationProperties gaStationProperties, GaStationReadingService gaStationReadingService) {
+    public GaStationsService(GaStationProperties gaStationProperties) {
         this.gaStationProperties = gaStationProperties;
-        this.gaStationReadingService = gaStationReadingService;
         gaState = new GaState();
         // -84.386330 - -81.088371 = -3.297959
         double xDblDiff = gaState.getAtlLongitude().doubleValue() - gaState.getSavLongitude().doubleValue();
@@ -46,7 +44,7 @@ public class GaStationsService {
         yScale = (double) yIntDiff / yDblDiff;
     }
 
-    public GaStationsDto getGaStationsDto() {
+    public GaStationsDto getGaStationsDto(GaStationReadings gaStationReadings) {
         List<GaStationDto> gaStationDtoList = new ArrayList<>();
 
         for (GaStationProperty gaStationProp : gaStationProperties.getGaStationProperties()) {
@@ -54,8 +52,8 @@ public class GaStationsService {
             int xPixLoc = gaState.getAtlX() - (int) (xDist * xScale);
             double yDist = gaState.getAtlLatitude().doubleValue() - gaStationProp.getLatitude().doubleValue();
             int yPixLoc = gaState.getAtlY() - (int) (yDist * yScale);
-            Optional<GaStationReading> gaStationReadingOpt = gaStationReadingService.getGaStationReadings().getGaStationReading(gaStationProp.getSiteKey());
-            Optional<GaStationReading> gaPriorStationReadingOpt = gaStationReadingService.getGaStationReadings().getPriorGaStationReading(gaStationProp.getSiteKey());
+            Optional<GaStationReading> gaStationReadingOpt = gaStationReadings.getGaStationReading(gaStationProp.getSiteKey());
+            Optional<GaStationReading> gaPriorStationReadingOpt = gaStationReadings.getPriorGaStationReading(gaStationProp.getSiteKey());
             gaStationReadingOpt.ifPresent(gaStationReading-> {
                 double rainFall = gaPriorStationReadingOpt.map(priorReading->{
                     double a = rainFalloDouble(gaStationReading) - rainFalloDouble(priorReading);

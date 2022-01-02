@@ -1,5 +1,6 @@
 package gaweather.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gaweather.model.GaStationProperties;
 import gaweather.model.GaStationReading;
@@ -59,8 +60,8 @@ public class GaStationReadingService {
                 }
                 return Optional.<GaStationReading>empty();
             }).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList()));
-//System.out.println(objectMapper.writeValueAsString(gaStationReadings.getGaStationReadings()));
-        } catch (InterruptedException e) {
+System.out.println(objectMapper.writeValueAsString(gaStationReadings.getGaStationReadings()));
+        } catch (InterruptedException | JsonProcessingException e) {
             logger.error(e.getMessage());
             gaStationReadings.setGaStationReadings(new ArrayList<>());
         }

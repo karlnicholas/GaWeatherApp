@@ -37,24 +37,4 @@ public class GaWeatherApp implements ApplicationRunner {
 //        printStationClasses(gaStationProperties, gaStationReadings);
     }
 
-    @Bean
-    public GaStationProperties loadStationProperties() {
-        GaStationProperties gaStationProperties = new GaStationProperties();
-        InputStream resource = GaWeatherApp.class.getResourceAsStream("/GaStationProperties.csv");
-        if ( resource != null ) {
-            try (InputStreamReader in = new InputStreamReader(resource)) {
-                gaStationProperties.setGaStationProperties(CSVFormat.Builder.create()
-                        .setHeader(GaStationProperty.GaStationPropertyHeader.class)
-                        .build().parse(in).stream().map(CSVRecord::toMap).map(GaStationProperty::new).collect(Collectors.toList()));
-            } catch ( Exception e) {
-                logger.severe(e.getMessage());
-                gaStationProperties.setGaStationProperties(new ArrayList<>());
-            }
-        } else {
-            logger.severe("Resource /GaStationProperties.csv not found");
-            gaStationProperties.setGaStationProperties(new ArrayList<>());
-        }
-        return gaStationProperties;
-    }
-
 }
