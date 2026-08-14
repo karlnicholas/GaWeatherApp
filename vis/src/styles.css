@@ -2,10 +2,12 @@ body {
   background: #f8f8f8;
   color: #f8f8f8;
 }
-canvas {
-  background: #f8f8f8;
-  padding: 0;
-  margin: 0 auto;
-  margin-bottom: 1rem;
+#gameCanvas {
   display: block;
+  width: 794px;
+  height: 1123px;
+  padding: 0;
+  margin: 0 auto 1rem;
+  background: #f8f8f8 url('./img/georgia68.svg') no-repeat;
+  background-size: 100% 100%;
 }

@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class GaStationDto {
     private String key;
-    private int x;
-    private int y;
+    private double latitude;
+    private double longitude;
     private int temp;
     private int windSpeed;
     private int windDir;

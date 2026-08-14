@@ -4,11 +4,57 @@
   const frameMs = 80
   let animating = false
   let lastFrame = 0
+  let cssWidth = 0
+  let cssHeight = 0
+
+  // georgia68.svg is an A4 plate (viewBox 0 0 21000 29700) drawn
+  // at the canvas CSS size. These edges are that plate in lon/lat,
+  // inverted from the old Atlanta/Savannah pixel fit so stations
+  // stay on the artwork. Equirectangular onto the viewBox.
+  const mapWest = -86.060566
+  const mapEast = -80.330918
+  const mapNorth = 35.606757
+  const mapSouth = 28.805904
 
   function init () {
     canvas = document.getElementById('gameCanvas')
     ctx = canvas.getContext('2d')
+    sizeCanvas()
+    window.addEventListener('resize', onResize)
     startShowingWeather()
+  }
+
+  function onResize () {
+    sizeCanvas()
+    projectStations()
+    draw()
+  }
+
+  function sizeCanvas () {
+    const dpr = window.devicePixelRatio || 1
+    cssWidth = canvas.clientWidth
+    cssHeight = canvas.clientHeight
+    canvas.width = Math.round(cssWidth * dpr)
+    canvas.height = Math.round(cssHeight * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+
+  function project (lat, lon) {
+    return {
+      x: (lon - mapWest) / (mapEast - mapWest) * cssWidth,
+      y: (mapNorth - lat) / (mapNorth - mapSouth) * cssHeight
+    }
+  }
+
+  function projectStations () {
+    if (!locations) {
+      return
+    }
+    locations.forEach(l => {
+      const p = project(l.latitude, l.longitude)
+      l.x = p.x
+      l.y = p.y
+    })
   }
 
   function startShowingWeather () {
@@ -24,6 +70,7 @@
       }
       const data = await response.json()
       locations = data.gaStations
+      projectStations()
       console.log('api read at ' + new Date())
       draw()
       startAnimation()
@@ -70,7 +117,7 @@
     if (!ctx) {
       return
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.clearRect(0, 0, cssWidth, cssHeight)
     const tm = pulse(Date.now())
     if (locations) {
       locations.forEach(l => {
