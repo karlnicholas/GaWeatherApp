@@ -1,13 +1,55 @@
 body {
   background: #f8f8f8;
-  color: #f8f8f8;
+  color: #2b2a29;
+  font-family: Georgia, "Times New Roman", Times, serif;
+}
+header {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+h1 {
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-align: center;
+  font-size: 1.75rem;
+  margin: 1.25rem 0 0.35rem;
+}
+#status {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #434242;
+  margin: 0 0 1rem;
+}
+#board {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.25rem;
+  margin: 0 auto 2rem;
 }
 #gameCanvas {
   display: block;
   width: 794px;
   height: 1123px;
   padding: 0;
-  margin: 0 auto 1rem;
+  margin: 0;
   background: #f8f8f8 url('./img/georgia68.svg') no-repeat;
   background-size: 100% 100%;
+}
+#legend {
+  width: 190px;
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+}
+.legend-note {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #434242;
+  margin: 0 0 0.75rem;
+}
+#legendCanvas {
+  display: block;
+  width: 190px;
+  height: 480px;
 }

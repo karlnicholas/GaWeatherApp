@@ -9,8 +9,18 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
+  <header>
+    <h1>Georgia Weather</h1>
+    <p id="status">Loading…</p>
+  </header>
+  <div id="board">
+    <div id="gameContainer">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+    <aside id="legend">
+      <p class="legend-note">Color is heat. Disc is sunlight (cyan to black). Flag points where the air is going.</p>
+      <canvas id="legendCanvas"></canvas>
+    </aside>
   </div>
   <script src="js/index.js"></script>
 </body>

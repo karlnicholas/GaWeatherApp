@@ -13,4 +13,5 @@ import java.util.List;
 @NoArgsConstructor
 public class GaStationsDto {
     private List<GaStationDto> gaStations;
+    private String observationDate;
 }

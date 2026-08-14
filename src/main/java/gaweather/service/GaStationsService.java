@@ -21,28 +21,35 @@ public class GaStationsService {
 
     public GaStationsDto getGaStationsDto(GaStationReadings gaStationReadings) {
         List<GaStationDto> gaStationDtoList = new ArrayList<>();
+        String observationDate = null;
 
         for (GaStationProperty gaStationProp : gaStationProperties.getGaStationProperties()) {
-            Optional<GaStationReading> gaStationReadingOpt = gaStationReadings.getGaStationReading(gaStationProp.getSiteKey());
-            gaStationReadingOpt.ifPresent(gaStationReading-> {
-                GaStationDto gaStationDto = GaStationDto.builder()
-                        .key(gaStationProp.getSiteKey())
-                        .latitude(gaStationProp.getLatitude().doubleValue())
-                        .longitude(gaStationProp.getLongitude().doubleValue())
-                        .temp(tempToInt(gaStationReading))
-                        .windSpeed(windSpeedToInt(gaStationReading))
-                        .windDir(windDirectionToDegrees(gaStationReading))
-                        .windGust(windGustToInt(gaStationReading))
-                        .solar(solarRadiationToInt(gaStationReading))
-                        .elevation(gaStationProp.getElevation().intValue())
-                        .rainToday(rainTodayInches(gaStationReading))
-                        .humidity(humidityToInt(gaStationReading))
-                        .build();
-                gaStationDtoList.add(gaStationDto);
-
-            });
+            Optional<GaStationReading> readingOpt = gaStationReadings.getGaStationReading(gaStationProp.getSiteKey());
+            if (readingOpt.isEmpty()) {
+                continue;
+            }
+            GaStationReading gaStationReading = readingOpt.get();
+            if (observationDate == null && gaStationReading.getObservationDate() != null) {
+                observationDate = gaStationReading.getObservationDate();
+            }
+            gaStationDtoList.add(GaStationDto.builder()
+                    .key(gaStationProp.getSiteKey())
+                    .latitude(gaStationProp.getLatitude().doubleValue())
+                    .longitude(gaStationProp.getLongitude().doubleValue())
+                    .temp(tempToInt(gaStationReading))
+                    .windSpeed(windSpeedToInt(gaStationReading))
+                    .windDir(windDirectionToDegrees(gaStationReading))
+                    .windGust(windGustToInt(gaStationReading))
+                    .solar(solarRadiationToInt(gaStationReading))
+                    .elevation(gaStationProp.getElevation().intValue())
+                    .rainToday(rainTodayInches(gaStationReading))
+                    .humidity(humidityToInt(gaStationReading))
+                    .build());
         }
-        return GaStationsDto.builder().gaStations(gaStationDtoList).build();
+        return GaStationsDto.builder()
+                .gaStations(gaStationDtoList)
+                .observationDate(observationDate)
+                .build();
     }
 
     private int humidityToInt(GaStationReading r) {
