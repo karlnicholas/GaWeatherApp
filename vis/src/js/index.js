@@ -1,6 +1,3 @@
-require("babel-core/register");
-require("babel-polyfill");
-
 ;(function () {
   // global variables that will be loaded/initialized later
   let canvas, ctx, locations, radius = 10

@@ -1,15 +1,15 @@
-# Game Dev / Canvas Boilerplate
-Vanilla JS version
+# Georgia Weather map
 
-## Setup Instructions
-1. [Install NodeJS](https://nodejs.org/) following the instructions on their website.
-2. Download this repository
-3. Open your terminal and run `npm install`
-4. Run `npm start` and navigate to `localhost:1234` in your browser
+Vanilla canvas front end. Station glyphs are drawn over a Georgia outline; live data comes from the Java BFF at `http://localhost:8080/api/gastations`.
+
+## Setup
+
+1. Install [Node.js](https://nodejs.org/) 18 or newer
+2. From this directory: `npm install`
+3. `npm start` and open the URL Parcel prints (usually `http://localhost:1234`)
+4. Run the Spring Boot app on port 8080 so the map has data
 
 ## Commands
-* `npm start` - starts the development server
-* `npm run build` - processes the files for production
-* `npm run lint` - checks files for errors
-* `npm run lint-fix` - attempts to fix errors
 
+* `npm start` — development server
+* `npm run build` — production files in `dist/`
