@@ -3,26 +3,16 @@ package gaweather.service;
 import gaweather.dto.GaStationDto;
 import gaweather.dto.GaStationsDto;
 import gaweather.model.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static java.time.temporal.ChronoUnit.HOURS;
-
 @Service
 public class GaStationsService {
-    Logger logger = LoggerFactory.getLogger(GaStationsService.class);
     private final GaStationProperties gaStationProperties;
-    private final DateTimeFormatter df = DateTimeFormatter.ofPattern("h:mm a v 'on' MMM [d][dd], uuuu");
 
     @Autowired
     public GaStationsService(GaStationProperties gaStationProperties) {
@@ -34,23 +24,7 @@ public class GaStationsService {
 
         for (GaStationProperty gaStationProp : gaStationProperties.getGaStationProperties()) {
             Optional<GaStationReading> gaStationReadingOpt = gaStationReadings.getGaStationReading(gaStationProp.getSiteKey());
-            Optional<GaStationReading> gaPriorStationReadingOpt = gaStationReadings.getPriorGaStationReading(gaStationProp.getSiteKey());
             gaStationReadingOpt.ifPresent(gaStationReading-> {
-                double rainFall = gaPriorStationReadingOpt.map(priorReading->{
-                    double a = rainFalloDouble(gaStationReading) - rainFalloDouble(priorReading);
-                    if ( a < 0.0 ) a = 0.0;
-                    // 15 mins or 0
-                    Duration m = Duration.between(observationToDateTime(priorReading), observationToDateTime(gaStationReading));
-                    if ( !m.isZero()) {
-                        long tp = Duration.of(1, HOURS).dividedBy(m);
-                        a *= (double)tp;
-                    }
-                    if ( a < 1.0 && a > 0.0 ) {
-                        a = .99;
-                    }
-                    return a;
-                }).orElse(0.0);
-//System.out.println("rain: " + gaStationProp.getSiteKey() + ":" + (int)(rainFall + 0.5));
                 GaStationDto gaStationDto = GaStationDto.builder()
                         .key(gaStationProp.getSiteKey())
                         .latitude(gaStationProp.getLatitude().doubleValue())
@@ -61,7 +35,7 @@ public class GaStationsService {
                         .windGust(windGustToInt(gaStationReading))
                         .solar(solarRadiationToInt(gaStationReading))
                         .elevation(gaStationProp.getElevation().intValue())
-                        .rainFall((int)(rainFall + 0.5))
+                        .rainToday(rainTodayInches(gaStationReading))
                         .humidity(humidityToInt(gaStationReading))
                         .build();
                 gaStationDtoList.add(gaStationDto);
@@ -78,37 +52,6 @@ public class GaStationsService {
     }
 
 
-    private LocalDateTime observationToDateTime(GaStationReading r) {
-        String t = r.getObservationDate();
-        if (t == null) return LocalDateTime.now();
-        int i = t.indexOf("onditions on ");
-        if ( i < 0 ) {
-            i = t.indexOf("onditions at ");
-            if ( i < 0 ) {
-                logger.error("Unparsable: {} {} ", r.getSiteKey(), t);
-                return LocalDateTime.now();
-            }
-        }
-        t = t.substring(i + 13).replace("January", "Jan")
-                .replace("February", "Feb")
-                .replace("March", "Mar")
-                .replace("April", "Apr")
-//                .replace("May", "May")
-                .replace("June", "Jun")
-                .replace("July","Jul")
-                .replace("August","Aug")
-                .replace("September","Sep")
-                .replace("October","Oct")
-                .replace("November","Nov")
-                .replace("December","Dec");
-        try {
-            return LocalDateTime.parse(t, df);
-        } catch ( DateTimeParseException dte ) {
-            logger.error("DateTimeParseException: " + r.getSiteKey() + " " + t, dte);
-            return LocalDateTime.now();
-        }
-    }
-
     private int tempToInt(GaStationReading r) {
         String t = r.getTemperature();
         if (t == null) return 0;
@@ -121,10 +64,12 @@ public class GaStationsService {
         return (int) (Double.parseDouble(t.substring(0, t.indexOf(' '))) + 0.5);
     }
 
-    private double rainFalloDouble(GaStationReading r) {
+    private double rainTodayInches(GaStationReading r) {
         String t = r.getCumulativeRain();
         if (t == null) return 0;
-        return Double.parseDouble(t.substring(0, t.indexOf(' ')));
+        int space = t.indexOf(' ');
+        if (space < 0) return 0;
+        return Double.parseDouble(t.substring(0, space));
     }
 
     private int windDirectionToDegrees(GaStationReading r) {

@@ -32,8 +32,8 @@ public class GaPrintUtils {
             GaStationsDto dto = gaStationsService.getGaStationsDto(gaStationReadings);
             System.out.println("====================================");
             for ( GaStationDto gaStation: dto.getGaStations()) {
-                if ( gaStation.getRainFall() > 0 ) {
-                    System.out.println("\t" + nDots(gaStation.getRainFall())  + "\t" + gaStation.getKey());
+                if ( gaStation.getRainToday() > 0 ) {
+                    System.out.println("\t" + gaStation.getRainToday() + "\t" + gaStation.getKey());
                 }
             }
             System.out.println();

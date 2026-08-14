@@ -1,9 +1,5 @@
 ;(function () {
   let canvas, ctx, locations
-  const radius = 10
-  const frameMs = 80
-  let animating = false
-  let lastFrame = 0
   let cssWidth = 0
   let cssHeight = 0
 
@@ -15,6 +11,12 @@
   const mapEast = -80.330918
   const mapNorth = 35.606757
   const mapSouth = 28.805904
+
+  const solarFull = 400
+  const rainHeavy = 0.25
+  const vaneHead = 10
+  const pxPerMph = 1.6
+  const vaneHalfW = 6
 
   function init () {
     canvas = document.getElementById('gameCanvas')
@@ -73,44 +75,91 @@
       projectStations()
       console.log('api read at ' + new Date())
       draw()
-      startAnimation()
     } catch (err) {
       console.error('api read failed', err)
     }
   }
 
-  function pulse (now) {
-    let tm = ((now % 1000) / 100) / 10
-    if (((now % 2000) / 1000) % 2 > 1) {
-      tm = 1 - tm
+  function solarFill (solar) {
+    const t = Math.max(0, Math.min(1, (solar || 0) / solarFull))
+    return 'hsl(190,100%,' + (t * 50) + '%)'
+  }
+
+  function vaneGeom (l) {
+    const goingDeg = ((l.windDir + 180) % 360)
+    const going = (Math.PI / 180) * goingDeg - (Math.PI / 2)
+    const dx = Math.cos(going)
+    const dy = Math.sin(going)
+    const px = -dy
+    const py = dx
+    const speed = l.windSpeed || 0
+    const gust = Math.max(speed, l.windGust || 0)
+    const bodyLen = vaneHead + pxPerMph * speed
+    const gustLen = vaneHead + pxPerMph * gust
+    const base = { x: l.x, y: l.y }
+    return {
+      base: base,
+      tip: { x: l.x + dx * bodyLen, y: l.y + dy * bodyLen },
+      gustTip: { x: l.x + dx * gustLen, y: l.y + dy * gustLen },
+      left: { x: l.x + px * vaneHalfW, y: l.y + py * vaneHalfW },
+      right: { x: l.x - px * vaneHalfW, y: l.y - py * vaneHalfW },
+      extra: gustLen - bodyLen
     }
-    return tm
   }
 
-  function needsPulse () {
-    return locations && locations.some(l =>
-      l.rainFall > 0 || l.windGust !== l.windSpeed
-    )
+  function drawSky (g, solar) {
+    ctx.beginPath()
+    ctx.arc(g.base.x, g.base.y, vaneHalfW, 0, Math.PI * 2)
+    ctx.fillStyle = solarFill(solar)
+    ctx.fill()
   }
 
-  function startAnimation () {
-    if (animating || !needsPulse()) {
+  function drawVaneBody (g, hue) {
+    ctx.beginPath()
+    ctx.moveTo(g.left.x, g.left.y)
+    ctx.lineTo(g.right.x, g.right.y)
+    ctx.lineTo(g.tip.x, g.tip.y)
+    ctx.closePath()
+    ctx.fillStyle = 'hsl(' + hue + ',100%,50%)'
+    ctx.strokeStyle = 'hsl(' + hue + ',80%,28%)'
+    ctx.lineWidth = 1
+    ctx.fill()
+    ctx.stroke()
+  }
+
+  function drawGust (g, hue) {
+    if (g.extra <= 2) {
       return
     }
-    animating = true
-    window.requestAnimationFrame(update)
+    ctx.save()
+    ctx.globalAlpha = 0.5
+    ctx.strokeStyle = 'hsl(' + hue + ',80%,22%)'
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(g.tip.x, g.tip.y)
+    ctx.lineTo(g.gustTip.x, g.gustTip.y)
+    ctx.stroke()
+    ctx.restore()
   }
 
-  function update (now) {
-    if (now - lastFrame >= frameMs) {
-      lastFrame = now
-      draw()
+  function drawRainFoot (g, inches) {
+    if (!inches || inches <= 0) {
+      return
     }
-    if (needsPulse()) {
-      window.requestAnimationFrame(update)
-    } else {
-      animating = false
-    }
+    const heavy = inches >= rainHeavy
+    const w = heavy ? 12 : 8
+    const h = heavy ? 3.5 : 2
+    ctx.fillStyle = heavy ? 'rgba(20,40,70,0.55)' : 'rgba(20,40,70,0.4)'
+    ctx.fillRect(g.base.x - w / 2, g.base.y + vaneHalfW + 2, w, h)
+  }
+
+  function drawStation (l) {
+    const hue = getHue((l.temp - 32) / 1.8)
+    const g = vaneGeom(l)
+    drawSky(g, l.solar)
+    drawRainFoot(g, l.rainToday)
+    drawVaneBody(g, hue)
+    drawGust(g, hue)
   }
 
   function draw () {
@@ -118,74 +167,10 @@
       return
     }
     ctx.clearRect(0, 0, cssWidth, cssHeight)
-    const tm = pulse(Date.now())
-    if (locations) {
-      locations.forEach(l => {
-        const e = l.elevation / 100
-        const m1 = e / 2
-        const m2 = e - m1
-        ctx.beginPath()
-        ctx.lineWidth = 1
-        ctx.strokeStyle = 'black'
-        ctx.moveTo(l.x - m1, l.y + m1)
-        ctx.lineTo(l.x, l.y - m2)
-        ctx.lineTo(l.x + m2, l.y + m1)
-        ctx.closePath()
-        ctx.stroke()
-
-        if (l.humidity > 90) {
-          ctx.beginPath()
-          ctx.lineWidth = 1
-          ctx.strokeStyle = 'hsl(190,100%,50%)'
-          ctx.arc(l.x, l.y, radius, 0, Math.PI * 2)
-          ctx.stroke()
-        } else if (l.rainFall > 0) {
-          const r = l.rainFall
-          ctx.beginPath()
-          ctx.lineWidth = r - 0.51 + tm
-          ctx.strokeStyle = 'hsl(210,100%,50%)'
-          ctx.arc(l.x, l.y, radius + r / 2, 0, Math.PI * 2)
-          ctx.stroke()
-        }
-        drawWindInd(ctx, l, tm)
-      })
+    if (!locations) {
+      return
     }
-  }
-
-  function drawWindInd (ctx, l, tm) {
-    const hue = getHue((l.temp - 32) / 1.8)
-    const startDeg = ((l.windDir - 90 + 360) % 360)
-    const endDeg = ((l.windDir + 90 + 360) % 360)
-    const startAngle = (Math.PI / 180) * startDeg - (Math.PI / 2)
-    const endAngle = (Math.PI / 180) * endDeg - (Math.PI / 2)
-
-    ctx.beginPath()
-    ctx.fillStyle = 'hsl(' + hue + ',100%,50%)'
-    ctx.arc(l.x, l.y, radius, startAngle, endAngle)
-    ctx.fill()
-
-    const sat = l.solar / 10.0
-    ctx.beginPath()
-    ctx.fillStyle = 'hsl(180,100%,' + sat + '%)'
-    ctx.arc(l.x, l.y, radius, endAngle, startAngle)
-    ctx.fill()
-
-    const tailStartX = radius * Math.cos(startAngle)
-    const tailStartY = radius * Math.sin(startAngle)
-    const tailEndX = radius * Math.cos(endAngle)
-    const tailEndY = radius * Math.sin(endAngle)
-
-    const tailDeg = ((l.windDir + 180) % 360)
-    const tailAngle = (Math.PI / 180) * tailDeg - (Math.PI / 2)
-    const w = l.windSpeed + ((l.windGust - l.windSpeed) * tm)
-    const tailTipX = w * Math.cos(tailAngle)
-    const tailTipY = w * Math.sin(tailAngle)
-    ctx.beginPath()
-    ctx.fillStyle = 'hsl(' + hue + ',100%,50%)'
-    ctx.moveTo(l.x + tailStartX, l.y + tailStartY)
-    ctx.lineTo(l.x + tailTipX, l.y + tailTipY)
-    ctx.lineTo(l.x + tailEndX, l.y + tailEndY)
-    ctx.fill()
+    locations.forEach(drawStation)
   }
 
   function getHue (t) {
