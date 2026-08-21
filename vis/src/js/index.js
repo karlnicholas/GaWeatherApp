@@ -13,10 +13,10 @@
   const mapSouth = 28.805904
 
   const solarFull = 400
-  const rainHeavy = 0.25
-  const vaneHead = 10
-  const pxPerMph = 1.6
-  const vaneHalfW = 6
+  const markRadius = 12
+  const windRefMph = 10
+  const rainRefInches = 1
+  const calmLine = 3
   const updateMs = 15 * 60 * 1000
 
   function init () {
@@ -117,80 +117,95 @@
     return 'hsl(190,100%,' + (t * 50) + '%)'
   }
 
-  function vaneGeom (l) {
-    const goingDeg = ((l.windDir + 180) % 360)
-    const going = (Math.PI / 180) * goingDeg - (Math.PI / 2)
-    const dx = Math.cos(going)
-    const dy = Math.sin(going)
-    const px = -dy
-    const py = dx
-    const speed = l.windSpeed || 0
-    const gust = Math.max(speed, l.windGust || 0)
-    const bodyLen = vaneHead + pxPerMph * speed
-    const gustLen = vaneHead + pxPerMph * gust
-    return {
-      base: { x: l.x, y: l.y },
-      tip: { x: l.x + dx * bodyLen, y: l.y + dy * bodyLen },
-      gustTip: { x: l.x + dx * gustLen, y: l.y + dy * gustLen },
-      left: { x: l.x + px * vaneHalfW, y: l.y + py * vaneHalfW },
-      right: { x: l.x - px * vaneHalfW, y: l.y - py * vaneHalfW },
-      extra: gustLen - bodyLen
+  function drawRain (c, x, y, inches) {
+    if (!inches || inches <= 0) {
+      return
     }
+    const w = markRadius * 2
+    const h = (inches / rainRefInches) * markRadius
+    if (h < 0.5) {
+      return
+    }
+    c.fillStyle = 'hsl(210,80%,32%)'
+    c.fillRect(x - w / 2, y, w, h)
   }
 
-  function drawSky (c, g, solar) {
+  function drawDisc (c, x, y, solar) {
     c.beginPath()
-    c.arc(g.base.x, g.base.y, vaneHalfW, 0, Math.PI * 2)
+    c.arc(x, y, markRadius, 0, Math.PI * 2)
     c.fillStyle = solarFill(solar)
     c.fill()
   }
 
-  function drawVaneBody (c, g, hue) {
+  function windGoing (windDir) {
+    const goingDeg = ((windDir + 180) % 360)
+    return (Math.PI / 180) * goingDeg - (Math.PI / 2)
+  }
+
+  function drawGustBar (c, x, y, dx, dy, extraMph) {
+    if (extraMph <= 0) {
+      return
+    }
+    const gLen = (extraMph / windRefMph) * markRadius
+    if (gLen < 0.5) {
+      return
+    }
+    const hw = 1.5
+    const hx = -dy * hw
+    const hy = dx * hw
+    const ex = x + dx * gLen
+    const ey = y + dy * gLen
     c.beginPath()
-    c.moveTo(g.left.x, g.left.y)
-    c.lineTo(g.right.x, g.right.y)
-    c.lineTo(g.tip.x, g.tip.y)
+    c.moveTo(x + hx, y + hy)
+    c.lineTo(x - hx, y - hy)
+    c.lineTo(ex - hx, ey - hy)
+    c.lineTo(ex + hx, ey + hy)
     c.closePath()
-    c.fillStyle = 'hsl(' + hue + ',100%,50%)'
-    c.strokeStyle = 'hsl(' + hue + ',80%,28%)'
-    c.lineWidth = 1
     c.fill()
     c.stroke()
   }
 
-  function drawGust (c, g, hue) {
-    if (g.extra <= 2) {
-      return
-    }
-    c.save()
-    c.globalAlpha = 0.5
-    c.strokeStyle = 'hsl(' + hue + ',80%,22%)'
-    c.lineWidth = 1.5
-    c.beginPath()
-    c.moveTo(g.tip.x, g.tip.y)
-    c.lineTo(g.gustTip.x, g.gustTip.y)
-    c.stroke()
-    c.restore()
-  }
-
-  function drawRainFoot (c, g, inches) {
-    if (!inches || inches <= 0) {
-      return
-    }
-    const heavy = inches >= rainHeavy
-    const w = heavy ? 12 : 8
-    const h = heavy ? 3.5 : 2
-    c.fillStyle = heavy ? 'rgba(20,40,70,0.55)' : 'rgba(20,40,70,0.4)'
-    c.fillRect(g.base.x - w / 2, g.base.y + vaneHalfW + 2, w, h)
-  }
-
-  function drawStationOn (c, l) {
+  function drawWind (c, l) {
+    const going = windGoing(l.windDir || 0)
+    const dx = Math.cos(going)
+    const dy = Math.sin(going)
     const hue = getHue((l.temp - 32) / 1.8)
-    const g = vaneGeom(l)
-    drawSky(c, g, l.solar)
-    drawRainFoot(c, g, l.rainToday)
-    drawVaneBody(c, g, hue)
-    drawGust(c, g, hue)
+    const speed = l.windSpeed || 0
+    const gust = l.windGust || 0
+    c.strokeStyle = 'hsl(' + hue + ',80%,28%)'
+    c.fillStyle = 'hsl(' + hue + ',100%,50%)'
+    c.lineWidth = 1
+
+    if (speed <= 0) {
+      c.beginPath()
+      c.moveTo(l.x, l.y)
+      c.lineTo(l.x + dx * calmLine, l.y + dy * calmLine)
+      c.lineWidth = 2
+      c.stroke()
+      c.lineWidth = 1
+      drawGustBar(c, l.x + dx * calmLine, l.y + dy * calmLine, dx, dy, gust)
+      return
+    }
+
+    const len = (speed / windRefMph) * markRadius
+    const px = -dy
+    const py = dx
+    const tipX = l.x + dx * len
+    const tipY = l.y + dy * len
+    c.beginPath()
+    c.moveTo(tipX, tipY)
+    c.lineTo(l.x + px * markRadius, l.y + py * markRadius)
+    c.lineTo(l.x - px * markRadius, l.y - py * markRadius)
+    c.closePath()
+    c.fill()
+    c.stroke()
+    drawGustBar(c, tipX, tipY, dx, dy, gust - speed)
+  }
+
+  function drawStation (c, l) {
+    drawRain(c, l.x, l.y, l.rainToday)
+    drawDisc(c, l.x, l.y, l.solar)
+    drawWind(c, l)
   }
 
   function draw () {
@@ -201,22 +216,7 @@
     if (!locations) {
       return
     }
-    locations.forEach(l => drawStationOn(ctx, l))
-  }
-
-  function sample (x, y, extra) {
-    const s = {
-      x: x,
-      y: y,
-      temp: 88,
-      windSpeed: 7,
-      windDir: 270,
-      windGust: 7,
-      solar: 500,
-      rainToday: 0
-    }
-    Object.assign(s, extra)
-    return s
+    locations.forEach(l => drawStation(ctx, l))
   }
 
   function legendLabel (c, x, y, text) {
@@ -235,19 +235,16 @@
     const h = legendCanvas.clientHeight
     legendCtx.clearRect(0, 0, w, h)
     const markX = 28
-    const labelX = 72
-    const ys = [36, 108, 180, 252, 324, 396]
+    const labelX = 52
     const items = [
-      { extra: { temp: 42, solar: 500 }, label: 'cold' },
-      { extra: { temp: 92, solar: 500 }, label: 'hot' },
-      { extra: { solar: 500, windSpeed: 4 }, label: 'sun' },
-      { extra: { solar: 0, windSpeed: 4 }, label: 'night' },
-      { extra: { windSpeed: 6, windGust: 18, solar: 300 }, label: 'gust' },
-      { extra: { rainToday: 0.4, solar: 200 }, label: 'rain today' }
+      { solar: 500, label: 'sun' },
+      { solar: 200, label: 'hazy' },
+      { solar: 0, label: 'night' }
     ]
     items.forEach((item, i) => {
-      drawStationOn(legendCtx, sample(markX, ys[i], item.extra))
-      legendLabel(legendCtx, labelX, ys[i], item.label)
+      const y = 36 + i * 72
+      drawDisc(legendCtx, markX, y, item.solar)
+      legendLabel(legendCtx, labelX, y, item.label)
     })
   }
 
